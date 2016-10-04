@@ -1,0 +1,744 @@
+<head>
+<title>The Pricing Simulation</title>
+<link rel="icon" href="data:;base64,=" />
+<link rel="stylesheet" type="text/css" href="jquery.jqplot.css" />
+<script src="jquery-1.11.0.min.js"></script>
+<script src="jquery.jqplot.min.js"></script>
+<script src="plugins/jqplot.highlighter.min.js"></script>
+<script src="plugins/jqplot.enhancedLegendRenderer.min.js"></script>
+<script src="plugins/jqplot.ohlcRenderer.min.js"></script>
+<style>
+.output {
+    width:850px;
+    border-width:3px;
+    border-color:black;
+    border-style:solid;
+    background-color:#E87600;
+}
+.simulation_info {
+    width:500px;
+    border-width:3px;
+    border-color:black;
+    border-style:solid;
+    background-color:#CCCCCC;
+}
+
+table, th, td {
+    border-width:2px;
+    border-color:black;
+    border-style:solid;
+    background-color:#FFFFFF;
+    padding:3px;
+}
+#outtext {
+    background-color:#FCBA44;
+    font-weight:bold;
+    font-size: 1.2em;
+}
+#instructions {
+    border-width:2px;
+    border-color:black;
+    border-style:solid;
+    padding:3px;
+    width:500px;
+    background-color:#CCCCCC;
+    text-align:left;
+}
+</style>
+</head>
+<body>
+
+<center>
+
+<h2>The Pricing Simulation</h2>
+
+<div id="turnnumber"><h3>Turn 1</h3></div>
+
+<div id="registration">
+    <h3>Registration</h3>
+    Team Name <input id="name" name="name" value="{{team}}">
+    <button id="regsubmit">Submit</button>
+</div>
+
+<div id="bids">
+    <span id="timer"></span><br>
+    Bid A&#8594;B <input id="bid_ab" name="bid_ab" type="text"
+    onkeypress="return event.charCode > 47 && event.charCode < 58;"/>
+    <br>
+
+    Bid B&#8594;A <input id="bid_ba" name="bid_ba" type="text"
+    onkeypress="return event.charCode > 47 && event.charCode < 58;"/>
+
+    <br>
+    <button id="bidsubmit">Submit</button>
+</div>
+
+<br>
+
+<div id="outputlabel">YOUR TURNS:</div>
+<div id="output" class="output">
+<br>
+</div>
+
+<button id="btn_instructions" onclick="$('#instructions').toggle()">
+Show/Hide Instructions
+</button>
+
+<div id="instructions" >
+
+Bidding will begin once every team has registered. The first line in the
+SIMULATION INFO box will indicate whether the simulation has started or not.
+<br><br>
+
+You are bidding on two components of one round-trip: a headhaul and a backhaul.
+There are more headhauls than there are backhauls, so bid carefully. There is a
+cost to running the miles empty, and there is a (slightly higher) cost to
+running a load. See the SIMULATION INFO box for details on what these values
+are. If you are awarded a headhaul load but no backhaul, for example, you will
+get paid for (and pay costs associated with) running the headhaul, but the
+driver will have to return empty.<br><br>
+
+Loads are awarded to the lowest bidders. If you bid too high, you may not get
+awarded any loads. If you bid too low, you may not cover your costs. If you
+make money in a turn, your fleet size will increase. If you do not make
+money, your fleet size will decrease. These values also appear in the
+SIMULATION INFO box.
+</div>
+
+<br>
+
+<div id="graph_buttons">
+    <button id="btn_bids_ab">
+    Show Headhaul Bid
+    </button>
+
+    <button id="btn_awards_ab">
+    Show Headhaul Award
+    </button>
+
+    <button id="btn_bids_ba">
+    Show Backhaul Bid
+    </button>
+
+    <button id="btn_awards_ba">
+    Show Backhaul Award
+    </button>
+
+    <button id="btn_bid_ranges">
+    Show Bid Ranges
+    </button>
+
+    <button id="btn_cap_vs_price">
+    Show Cap vs. Price
+    </button>
+
+    <button id="btn_cust_vw">
+    Show Customer View
+    </button>
+
+</div>
+
+<div id="ab_bid_history">
+<br><br>
+<div id="ab_bid_history_graph" style="height:400px;width:800px;"></div>
+</div>
+
+<div id="ab_award_history">
+<br><br>
+<div id="ab_award_history_graph" style="height:400px;width:800px;"></div>
+</div>
+
+<div id="ba_bid_history">
+<br><br>
+<div id="ba_bid_history_graph" style="height:400px;width:800px;"></div>
+</div>
+
+<div id="ba_award_history">
+<br><br>
+<div id="ba_award_history_graph" style="height:400px;width:800px;"></div>
+</div>
+
+<div id="bid_ranges">
+<br><br>
+<div id="ab_ranges_graph" style="height:400px;width:800px;"></div>
+<br><br>
+<div id="ba_ranges_graph" style="height:400px;width:800px;"></div>
+</div>
+
+<div id="cap_vs_price">
+<br><br>
+<div id="cap_vs_price_graph" style="height:400px;width:800px;"></div>
+</div>
+
+<div id="cust_vw">
+<br><br>
+<div id="cust_award_graph" style="height:400px;width:800px;"></div>
+<br><br>
+<div id="cust_cost_graph" style="height:400px;width:800px;"></div>
+</div>
+
+<br>
+SIMULATION INFO:
+<div id="simulation_info" class="simulation_info">
+<br>
+</div>
+
+</center>
+</body>
+</html>
+
+
+
+<script type="text/javascript">
+jQuery(function($) {
+    var current_turn = 1;
+    var sim_started = false;
+    var count=100000;
+    var registered = false;
+
+    $.ajaxSetup({ cache: false });
+
+    $.jqplot.config.enablePlugins = true;
+
+    $("#bids").hide();
+    $("#output").hide();
+    $("#outputlabel").hide();
+    $("#turnnumber").hide();
+    $("#ab_bid_history").hide();
+    $("#ab_award_history").hide();
+    $("#ba_bid_history").hide();
+    $("#ba_award_history").hide();
+    $("#bid_ranges").hide();
+    $("#cap_vs_price").hide();
+    $("#cust_vw").hide();
+    $("#instructions").hide();
+    $("#graph_buttons").hide();
+
+    function register() {
+        var team_name = $("#name").val();
+        $.get("index.json",
+               {action: "register", name: team_name},
+               function(data) {
+            if (data.status=="OK") {
+                $("#registration").hide();
+//                $("#bids").show();
+                $("#output").show();
+                $("#outputlabel").show();
+                $("#turnnumber").show();
+                registered = true;
+                poll();
+            }
+            else if (data.status=="MONITOR") {
+                $("#graph_buttons").show();
+                $("#registration").hide();
+            }
+            else { alert(data.status); }
+        });
+    }
+    $("#regsubmit").click(register);
+
+    function bid() {
+        if ($("#bid_ab").val() == "" || $("#bid_ba").val() == "") {
+            alert("Bids cannot be blank!"); }
+        else {
+            var team_name = $("#name").val();
+            var ab = $("#bid_ab").val();
+            var ba = $("#bid_ba").val();
+            $.get("index.html",
+               {action: "bid", name: team_name, bid_ab: ab, bid_ba: ba},
+               function(data) {
+                    $("#bid_ab").val('');
+                    $("#bid_ba").val('');
+                    $("#bids").hide();
+                    $("#output").show();
+                    $("#turn").html("Waiting for turn to end");
+                }
+            ).fail(function() {setTimeout(bid, 1000);});
+        }
+    }
+
+    $("#bidsubmit").click(bid);
+
+    var poll_fails = 0; //if greater than 30 seconds of failures, reload page
+
+    function poll() {
+        var team_name = $("#name").val();
+        setTimeout(function() {
+            $.getJSON("index.json",
+                {action: "poll", name: team_name},
+                function(data) {
+                    poll_fails = 0;
+                    if (data[1] > current_turn) {
+//                        alert("poll");
+                        $("#bids").show();
+                        current_turn = data[1];
+                    }
+                    if (sim_started) {
+                        $("#turnnumber").html("<h3>Turn " + data[1] + "</h3>");
+                    } 
+                    else {
+                        $("#turnnumber").html(
+                            "<h3>WAITING FOR SIMULATION TO START</h3>"
+                        );
+                    }
+                    var outstring = '<br><font id="outtext">';
+                    outstring += "Name: " + data[2].name;
+                    outstring += " | Capacity: " + data[2].capacity;
+                    outstring += " | Cumulative Contribution: " + data[2].dollars;
+                    outstring += "</font><br><br>" + data[2].table + "<br>";
+                    $("#output").html(outstring);
+                    count = data[4];
+                    if (data[3] == true) {
+                        $("#turnnumber").html("<h3>SIMULATION OVER</h3>");
+                        $("#bids").html("The simulation has ended.<br>" +
+                                        "Scroll down to see how you " +
+                                        "compared to your competition.");
+                    }
+                    else {poll();}
+
+                }
+            ).fail(function(jqxhr, textStatus, error) {
+                if (jqxhr.statusText == "User not in current game") { 
+                    location.reload();
+                }
+                if (poll_fails>60) { location.reload(); }
+                else {
+                    poll_fails = poll_fails + 1;
+                    poll();
+                }
+            });
+        },1000);
+    }
+    var rendered_graphs = false;
+    function simulation_info() {
+        var team_name = $("#name").val();
+        setTimeout(function() {
+            $.getJSON("index.json",
+                {action: "simulation_info", name: team_name},
+                function(data) {
+                    var outstring = "<br>";
+                    outstring += data.stats;
+                    $("#simulation_info").html(outstring);
+                    if (data.started && !sim_started && registered) {
+//                        alert("sim info");
+                        $("#bids").show();
+                        sim_started = true;
+                    }
+                    else if (!data.started && sim_started) {
+                        location.reload();
+                    }
+                    if (data.simulation_over && !rendered_graphs) {
+                        rendered_graphs = true;
+                        $("#graph_buttons").show();
+                        $("#registration").hide();
+                        simulation_info();
+                    }
+                    else if (!rendered_graphs) { simulation_info(); }
+                }
+            ).fail( function() { simulation_info();});
+        },1000);
+    }
+
+    function renderGraph(graph, plot, graph_title, bid_award, lane, numfmt) {
+        var fmt = '<b><i><span style="color:red;">' + numfmt + '</span></i></b>';
+        $.getJSON("index.json",
+            {action: "bid_award_history"},
+            function( data ) {
+                if (window[plot] != null) { window[plot].destroy(); }
+                window[plot] = $.jqplot(graph, data[bid_award][lane], {
+                    title: graph_title,
+                    seriesDefaults: {
+                        showMarker:true,
+                        showLine:true,
+                        rendererOptions: {
+                            smooth: true,
+                            animation: {
+                                show: true
+                            }
+                        },
+                    },
+                    axes: {xaxis: {autoscale:true,
+                                   min: 0,
+                                   tickInterval: 1,
+                                   tickOptions: {formatString:'%d'}
+                                  }
+                    },
+                    legend: {renderer: $.jqplot.EnhancedLegendRenderer,
+                             show: true,
+                             location: 'e',
+                             labels: data.players,
+                             rendererOptions: {numberRows: 12, placement: "outsideGrid"}
+                            },
+                    highlighter: {showTooltip: true,
+                                  sizeAdjust: 10,
+                                  lineWidthAdjust: 10,
+                                  tooltipAxes: 'y',
+                                  tooltipFormatString: fmt,
+                                  useAxesFormatters: false}
+
+                });
+            }
+        );
+
+    }
+
+    var ab_bid_plot;
+    var ba_bid_plot;
+    var ab_award_plot;
+    var ba_award_plot;
+    var cust_award_plot;
+    var cust_cost_plot;
+    var cap_vs_price_plot;
+
+    function bid_button(btnid, divid, gr_id, gr_var, gr_title,
+                        bd_aw, ab_ba, fmt) {
+        $("#"+divid).toggle();
+        if ($("#"+divid).css('display') != "none") {
+            renderGraph(gr_id, gr_var, gr_title, bd_aw, ab_ba, fmt);
+            $("#"+btnid).text("Hide " + gr_title);
+        }
+        else {$("#" + btnid).text("Show " + gr_title);}
+    }
+
+    $("#btn_bids_ab").click(function() {
+        bid_button("btn_bids_ab", "ab_bid_history", "ab_bid_history_graph",
+                   "ab_bid_plot", "Headhaul Bids", "bids", "ab", "$%.2f");
+    });
+
+    $("#btn_awards_ab").click(function() {
+        bid_button("btn_awards_ab", "ab_award_history", "ab_award_history_graph",
+                   "ab_award_plot", "Headhaul Awards", "awards", "ab", "%d");
+    });
+
+    $("#btn_bids_ba").click(function() {
+        bid_button("btn_bids_ba", "ba_bid_history", "ba_bid_history_graph",
+                   "ba_bid_plot", "Backhaul Bids", "bids", "ba", "$%.2f");
+    });
+
+    $("#btn_awards_ba").click(function() {
+        bid_button("btn_awards_ba", "ba_award_history", "ba_award_history_graph",
+                   "ba_award_plot", "Backhaul Awards", "awards", "ba", "%d");
+    });
+
+    function render_cap_vs_price() {
+        var fmt = '<b><i><span style="color:red;">%d</span></i></b>';
+        var plot = "cap_vs_price_plot";
+        $.getJSON("index.json",
+            {action: "mkt_cap_vs_avg_prc"},
+            function( data ) {
+                if (window[plot] != null) { window[plot].destroy(); }
+                window[plot] = $.jqplot("cap_vs_price_graph",
+                                        [data['abavgs'],
+                                         data['baavgs'],
+                                         data['mktcap']
+                                        ], {
+                    title: "Average Load Cost vs. Market Capacity",
+                    seriesDefaults: {
+                        showMarker:true,
+                        showLine:true,
+                        rendererOptions: {
+                            smooth: true,
+                            animation: {
+                                show: true
+                            }
+                        },
+                    },
+                    series: [
+                        {yaxis: 'yaxis'},
+                        {yaxis: 'yaxis'},
+                        {yaxis: 'y2axis'}
+                    ],
+                    axes: {
+                        xaxis: {autoscale:true,
+                                min: 0,
+                                tickInterval: 1,
+                                tickOptions: {formatString:'%d'},
+                                label: 'Turn'
+                        },
+                        yaxis: {autoscale:true,
+                                min: 0,
+                                tickOptions: {formatString:'$%d'},
+                                label: 'Average Cost'
+                        },
+                        y2axis: {autoscale:true,
+                                min: 0,
+                                tickOptions: {formatString:'%d'},
+                                label: 'Capacity'
+                        }
+
+                    },
+                    legend: {renderer: $.jqplot.EnhancedLegendRenderer,
+                             show: true,
+                             location: 'e',
+                             labels: ["A&#8594;B Average Cost",
+                                      "B&#8594;A Average Cost",
+                                      "Market Capacity",
+                                     ],
+                             rendererOptions: {numberRows: 12, placement: "outsideGrid"}
+                            },
+                    highlighter: {showTooltip: true,
+                                  sizeAdjust: 10,
+                                  lineWidthAdjust: 10,
+                                  tooltipAxes: 'y',
+                                  tooltipFormatString: fmt,
+                                  useAxesFormatters: false}
+                });
+        });
+    }
+
+    $("#btn_cap_vs_price").click(function() {
+        $("#cap_vs_price").toggle();
+        if ($("#cap_vs_price").css('display') != "none") {
+            render_cap_vs_price();
+            $("#btn_cap_vs_price").text("Hide Cap vs. Price");
+        }
+        else {$("#btn_cap_vs_price").text("Show Cap vs. Price");}
+    });
+
+
+
+    function render_cust_vw() {
+        var fmt1 = '<b><i><span style="color:red;">%d</span></i></b>';
+        var fmt2 = '<b><i><span style="color:red;">%d</span></i></b>';
+        var plot1 = "cust_award_plot";
+        var plot2 = "cust_cost_plot";
+        $.getJSON("index.json",
+            {action: "customer_view"},
+            function( data ) {
+                if (window[plot1] != null) { window[plot1].destroy(); }
+                window[plot1] = $.jqplot("cust_award_graph",
+                                        [data['plyr_awd']['ab'],
+                                         data['plyr_awd']['ba'],
+                                         data['brkg_awd']['ab'],
+                                         data['brkg_awd']['ba'],
+                                        ], {
+                    title: "Customer Awards",
+                    seriesDefaults: {
+                        showMarker:true,
+                        showLine:true,
+                        rendererOptions: {
+                            smooth: true,
+                            animation: {
+                                show: true
+                            }
+                        },
+                    },
+                    axes: {xaxis: {autoscale:true,
+                                   min: 0,
+                                   tickInterval: 1,
+                                   tickOptions: {formatString:'%d'}
+                                  }
+                    },
+                    legend: {renderer: $.jqplot.EnhancedLegendRenderer,
+                             show: true,
+                             location: 'e',
+                             labels: ["Headhaul awards (players)",
+                                      "Backhaul awards (players)",
+                                      "Headhaul awards (brokerage)",
+                                      "Backhaul awards (brokerage)",
+                                     ],
+                             rendererOptions: {numberRows: 12, placement: "outsideGrid"}
+                            },
+                    highlighter: {showTooltip: true,
+                                  sizeAdjust: 10,
+                                  lineWidthAdjust: 10,
+                                  tooltipAxes: 'y',
+                                  tooltipFormatString: fmt1,
+                                  useAxesFormatters: false}
+                });
+                if (window[plot2] != null) { window[plot2].destroy(); }
+                window[plot2] = $.jqplot("cust_cost_graph",
+                                        [data['plyr_cst']['ab'],
+                                         data['plyr_cst']['ba'],
+                                         data['brkg_cst']['ab'],
+                                         data['brkg_cst']['ba'],
+                                         data['total_cost']
+                                        ], {
+                    title: "Customer Costs",
+                    seriesDefaults: {
+                        showMarker:true,
+                        showLine:true,
+                        rendererOptions: {
+                            smooth: true,
+                            animation: {
+                                show: true
+                            }
+                        },
+                    },
+                    axes: {xaxis: {autoscale:true,
+                                   min: 0,
+                                   tickInterval: 1,
+                                   tickOptions: {formatString:'%d'}
+                                  }
+                    },
+                    legend: {renderer: $.jqplot.EnhancedLegendRenderer,
+                             show: true,
+                             location: 'e',
+                             labels: ["Headhaul payouts to carriers",
+                                      "Backhaul payouts to carriers",
+                                      "Headhaul payouts to brokerage",
+                                      "Backhaul payouts to brokerage",
+                                      "Total cost"
+                                     ],
+                             rendererOptions: {numberRows: 12, placement: "outsideGrid"}
+                            },
+                    highlighter: {showTooltip: true,
+                                  sizeAdjust: 10,
+                                  lineWidthAdjust: 10,
+                                  tooltipAxes: 'y',
+                                  tooltipFormatString: fmt2,
+                                  useAxesFormatters: false}
+                });
+            }
+        );
+
+    }
+
+    $("#btn_cust_vw").click(function() {
+        $("#cust_vw").toggle();
+        if ($("#cust_vw").css('display') != "none") {
+            render_cust_vw();
+            $("#btn_cust_vw").text("Hide Customer View");
+        }
+        else {$("#btn_cust_vw").text("Show Customer View");}
+    });
+
+    var ab_ranges_plot;
+    var ba_ranges_plot;
+
+
+    function render_bid_ranges() {
+        var fmt1 = '<b><i><span style="color:red;">%d</span></i></b>';
+        var fmt2 = '<b><i><span style="color:red;">%d</span></i></b>';
+        var plot1 = "ab_ranges_plot";
+        var plot2 = "ba_ranges_plot";
+        $.getJSON("index.json",
+            {action: "bid_ranges"},
+            function( data ) {
+                if (window[plot1] != null) { window[plot1].destroy(); }
+                window[plot1] = $.jqplot("ab_ranges_graph", [data['ab']], {
+                    title: "Headhaul Bid Ranges",
+                    series: [
+                        {
+                            renderer:$.jqplot.OHLCRenderer,
+                            rendererOptions:{ candleStick:true,
+                                              lineWidth:5,
+                                              ticklength:20,
+                                              bodyWidth:20,
+                                              wickColor:'#000000',
+                                              openColor:'#000000',
+                                              closeColor:'#000000',
+                                              upBodyColor:'#000000',
+                                              downBodyColor:'#000000'
+                                             }
+                        }
+                    ],
+                    seriesDefaults: {},
+                    axes: {xaxis: {autoscale:true,
+                                   min: 0,
+                                   max: data['ab'].length,
+                                   tickInterval: 1,
+                                   tickOptions: {formatString:'%d'}
+                                  }
+                    },
+                    highlighter: {
+                      show: true,
+                      showMarker:false,
+                      tooltipAxes: 'xy',
+                      yvalues: 4,
+                      formatString:'<table class="jqplot-highlighter"> \
+                      <tr><td>turn:</td><td>%s</td></tr> \
+                      <tr><td>average:</td><td>%s</td></tr> \
+                      <tr><td>high:</td><td>%s</td></tr> \
+                      <tr><td>low:</td><td>%s</td></tr></table>'
+                    }
+                });
+                if (window[plot2] != null) { window[plot2].destroy(); }
+                window[plot2] = $.jqplot("ba_ranges_graph", [data['ba']], {
+                    title: "Backhaul Bid Ranges",
+                    series: [
+                        {
+                            renderer:$.jqplot.OHLCRenderer,
+                            rendererOptions:{ candleStick:true,
+                                              lineWidth:5,
+                                              ticklength:20,
+                                              bodyWidth:20,
+                                              wickColor:'#000000',
+                                              openColor:'#000000',
+                                              closeColor:'#000000',
+                                              upBodyColor:'#000000',
+                                              downBodyColor:'#000000'
+                                             }
+                        }
+                    ],
+                    seriesDefaults: {},
+                    axes: {xaxis: {autoscale:true,
+                                   min: 0,
+                                   max: data['ba'].length,
+                                   tickInterval: 1,
+                                   tickOptions: {formatString:'%d'}
+                                  }
+                    },
+                    highlighter: {
+                      show: true,
+                      showMarker:false,
+                      tooltipAxes: 'xy',
+                      yvalues: 4,
+                      formatString:'<table class="jqplot-highlighter"> \
+                      <tr><td>turn:</td><td>%s</td></tr> \
+                      <tr><td>average:</td><td>%s</td></tr> \
+                      <tr><td>high:</td><td>%s</td></tr> \
+                      <tr><td>low:</td><td>%s</td></tr></table>'
+                    }
+                });
+            }
+        );
+
+    }
+
+    $("#btn_bid_ranges").click(function() {
+        $("#bid_ranges").toggle();
+        if ($("#bid_ranges").css('display') != "none") {
+            render_bid_ranges();
+            $("#btn_bid_ranges").text("Hide Bid Ranges");
+        }
+        else {$("#btn_bid_ranges").text("Show Bid Ranges");}
+    });
+
+
+    
+
+    function timer()
+    {
+        count = count-1;
+        if (count <= 0)
+        {
+            $("#bids").hide();
+            return;
+        }
+        else if (count < 1200)
+        {
+            var t_min = count/60 | 0;
+            var t_sec = count % 60;
+            var label_min = t_min + " minutes ";
+            var label_sec = t_sec + " seconds";
+            if (t_min == 1) {label_min = "1 minute ";}
+            if (t_min == 0) {label_min = "";}
+            if (t_sec == 1) {label_sec = "1 second";}
+            document.getElementById("timer").innerHTML =
+                "Time Remaining: &nbsp;" + label_min + label_sec;
+        }
+        else { 
+            document.getElementById("timer");
+//            $("#bids").hide();
+        }
+    }
+
+    var counter=setInterval(timer, 1000); //1000 will  run it every 1 second
+    timer();
+    simulation_info();
+    if ($("#name").val().length>0) {
+        register();
+    }
+})
+</script>
