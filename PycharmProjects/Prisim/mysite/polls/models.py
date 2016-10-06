@@ -15,20 +15,25 @@ class Session_Table(models.Model):
       #  db_table="Session_Table"
 
 """
+#Player Registration Form
 
-
-"""
-class Player_Details(models.Model):
-    PID=models.AutoField()
-    Player_fname=models.CharField(max_length= 50)
-    Player_Company=models.CharFeild(max_length=50)
+class Player_Reg_Details(models.Model):
+    PID=models.CharField(max_length=200)
+    Player_fname=models.CharField(max_length= 150)
+    Player_Company=models.CharField(max_length=50)
     Player_email=models.EmailField()
-    Player_passwd=models.CharField(max_length=10 , default=5)""" """Can be added in future
+    Player_passwd=models.CharField(max_length=10 , default=5)#Can be added in future
     player_type=models.CharField(max_length=10)
+    time_stamp=models.DateTimeField(auto_now_add=True, auto_now=False)
+    timestamp_updated=models.DateTimeField(auto_now_add=True , auto_now=False)
+
+    def __str__(self):
+        return self.PID
+
+
     #class Meta:
      #   db_table="Player_Details"
 
-"""
 
 """
 class Simulation_Details(models.Model):
@@ -41,20 +46,25 @@ class Simulation_Details(models.Model):
 """
 
 
-class Gamer(models.Model):
+class Games(models.Model):
     #Gamergame_id=models.IntegerField
     game_Type=models.CharField(max_length=20) #
     Number_of_players=models.PositiveIntegerField(default=1)
     no_Of_Trucks=models.PositiveIntegerField(default=25)
-    """
-    Nth_turn=models.PositiveIntegerField(default=15)
-    empty_Cost=models.BigIntegerField(default=400)
-    loaded_Cost=models.BigIntegerField(default=550)
-    unused_capital_cost=models.BigIntegerField(default=250)
-    brokerage_Cost=models.BigIntegerField(default=1200)
-    """
+    #
+    # Nth_turn=models.PositiveIntegerField(default=15)
+    # empty_Cost=models.BigIntegerField(default=400)
+    # loaded_Cost=models.BigIntegerField(default=550)
+    # unused_capital_cost=models.BigIntegerField(default=250)
+    # brokerage_Cost=models.BigIntegerField(default=1200)
+    #
+
     def __str__(self):
         return self.game_Type
+
+
+
+
 
 
 

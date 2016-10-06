@@ -47,7 +47,25 @@ table, th, td {
 </style>
 </head>
 <body>
+<div>{% extends "base.html" %}
 
+{% block content %}
+
+<p>
+<h4>
+Hi <i>{{ username }}</i> you are logged in !!!
+
+</h4>
+Click here to <a href="/accounts/logout/">Logout</a>
+
+<a href="index.html">Play   </a>
+</p>
+
+
+
+
+
+{% endblock %}</div>
 <center>
 
 <h2>The Pricing Simulation</h2>

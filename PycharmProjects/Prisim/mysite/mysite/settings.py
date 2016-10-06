@@ -43,8 +43,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'polls',
+    'crispy_forms',#Form tags Third party
+    'polls',#app
 ]
+CRISPY_TEMPLATE_PACK = 'bootstrap3'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -61,7 +63,13 @@ ROOT_URLCONF = 'mysite.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [
+                   os.path.join(BASE_DIR, 'templates'),
+            'C:\\Users\\n05717\\PycharmProjects\\Prisim\\mysite\\polls\\'
+
+
+        ],
+
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -77,23 +85,21 @@ TEMPLATES = [
 WSGI_APPLICATION = 'mysite.wsgi.application'
 
 
-# Database
+# Database Post_gre_sql
 # https://docs.djangoproject.com/en/1.10/ref/settings/#databases
-"""DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'Prisim',
-        'USER': 'Sam',
-        'PASSWORD': 'Sam',
-        'HOST': 'localhost',
-        'PORT': '5432',
-    }
-}
-"""
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql_psycopg2',
+#         'NAME': 'postgres',
+#         'USER': 'postgres',
+#         'PASSWORD': 'sam',
+#         'PORT': '5432',
+#     }
+# }
 
 
 
-
+#DBsqllite3
 
 DATABASES = {
     'default': {

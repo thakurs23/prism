@@ -1,10 +1,31 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{% extends "base.html" %}
 
-</body>
-</html>
+{% load crispy_form_tags %}
+
+{% block content %}
+<div class='col-sm-6 col-sm-offset-3'>
+
+
+<h1>{{ title }}</h1>
+<form action="", method="post">
+
+{% csrf_token %}
+{{ form|crispy }}
+{#<label for="username">Username:</label>#}
+{#<input type="text" name="username" id="username">#}
+{#<label for="password">Password:</label>#}
+{#<input type="text" name="password" id="password">#}
+<input type="submit" value="{{ title }}">
+
+
+</form>
+
+</div>
+
+
+
+
+
+
+
+{% endblock %}
